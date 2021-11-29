@@ -29,6 +29,12 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             # Holidays falling on a weekend and subsequently made up.
             "2004-08-16",  # Assumption day, falls Sun 15th, made up on Monday.
             #
+            # Christmas Eve was observed as a full day, and then became a half
+            # day from 2010 until 2020, and then went back to being a full day
+            # from 2021
+            "2010-12-24",
+            "2021-12-24",
+            #
             # Last observance of holidays that subsequently ceased to be observed.
             "2006-01-06",  # Epiphany
             "2003-08-15",  # Assumption Day
@@ -36,7 +42,6 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             "2004-11-01",  # All Saints Day
             "2004-12-06",  # Constitution Day
             "2004-12-08",  # Immaculate Conception
-            "2010-12-24",  # Christmas Eve
             "2010-12-31",  # New Year's Eve
         ]
 
@@ -55,6 +60,10 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             # so the market is closed on the previous Friday).
             "2010-12-27",
             #
+            # Christmas Eve was an early close from 2012-12-24 to 2020-12-24
+            "2012-12-24",
+            "2020-12-24",
+
             # Regular holidays that ceased to be observed.
             # First subsequent 'would-be' occurrence...
             "2009-01-06",  # Epiphany
@@ -63,14 +72,16 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             "2005-11-01",  # All Saints Day
             "2005-12-06",  # Constitution Day
             "2005-12-08",  # Immaculate Conception
-            "2012-12-24",  # Christmas Eve
             "2012-12-31",  # New Year's Eve
         ]
 
     @pytest.fixture
     def early_closes_sample(self):
         yield [
-            "2012-12-24",  # Christmas Eve
+            # Christmas Eve was an early close from 2012-12-24, to 2020-12-24
+            "2012-12-24",
+            "2020-12-24",
+            
             "2012-12-31",  # New Year's Eve
         ]
 

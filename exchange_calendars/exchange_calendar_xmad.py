@@ -59,8 +59,10 @@ ConstitutionDay = Holiday(
 ImmaculateConception = immaculate_conception(end_date="2005")
 
 ChristmasEveThrough2010 = christmas_eve(end_date="2011")
-ChristmasEveEarlyClose2012Onwards = christmas_eve(
+ChristmasEveFrom2021 = christmas_eve(start_date="2021")
+ChristmasEveEarlyClose2012To2020 = christmas_eve(
     start_date="2012",
+    end_date="2021",
     days_of_week=(WEEKDAYS),
 )
 Christmas = christmas()
@@ -128,6 +130,7 @@ class XMADExchangeCalendar(ExchangeCalendar):
                 ConstitutionDay,
                 ImmaculateConception,
                 ChristmasEveThrough2010,
+                ChristmasEveFrom2021,
                 Christmas,
                 BoxingDay,
                 NewYearsEveThrough2010,
@@ -141,7 +144,7 @@ class XMADExchangeCalendar(ExchangeCalendar):
                 self.regular_early_close,
                 HolidayCalendar(
                     [
-                        ChristmasEveEarlyClose2012Onwards,
+                        ChristmasEveEarlyClose2012To2020,
                         NewYearsEveEarlyClose2012Onwards,
                     ]
                 ),
