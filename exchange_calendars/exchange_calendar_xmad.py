@@ -87,6 +87,7 @@ class XMADExchangeCalendar(ExchangeCalendar):
       - Good Friday
       - Easter Monday
       - Labour Day
+      - Christmas Eve (apart from when it was observed as an early close)
       - Christmas Day
       - Boxing Day
 
@@ -97,11 +98,10 @@ class XMADExchangeCalendar(ExchangeCalendar):
       - All Saints Day (until 2004, inclusive)
       - Constitution Day (until 2004, inclusive)
       - Immaculate Conception (until 2004, inclusive)
-      - Christmas Eve (until 2010, inclusive)
       - New Year's Eve (until 2010, inclusive)
 
     Early Closes:
-      - Christmas Eve (2012 and after)
+      - Christmas Eve (2012 to 2020, inclusive)
       - New Year's Eve (2012 and after)
     """
 
