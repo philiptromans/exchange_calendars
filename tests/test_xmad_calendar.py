@@ -63,7 +63,7 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             # Christmas Eve was an early close from 2012-12-24 to 2020-12-24
             "2012-12-24",
             "2020-12-24",
-
+            #
             # Regular holidays that ceased to be observed.
             # First subsequent 'would-be' occurrence...
             "2009-01-06",  # Epiphany
@@ -81,7 +81,7 @@ class TestXMADCalendar(ExchangeCalendarTestBase):
             # Christmas Eve was an early close from 2012-12-24, to 2020-12-24
             "2012-12-24",
             "2020-12-24",
-            
+
             "2012-12-31",  # New Year's Eve
         ]
 
