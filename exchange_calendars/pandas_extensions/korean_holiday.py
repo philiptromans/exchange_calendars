@@ -180,9 +180,21 @@ def korean_solar_to_lunar(year, month, day):
     return (calendar.lunarYear, calendar.lunarMonth, calendar.lunarDay)
 
 
-def korean_solar_to_lunar_datetime(dt):
-    year, month, day = korean_solar_to_lunar(dt.year, dt.month, dt.day)
-    return dt.replace(year, month, day)
+def korean_solar_to_lunar_datetime(dt, round_down: bool):
+    """This method sets the year, month and day fields on a pd.Timestamp to the equivalent lunar ones.
+
+    The problem is that not all lunar calendar dates can be stored in a Gregorian date.
+    For example, 2022-03-31 (Gregorian) corresponds to 2022-02-29 (Korean lunar). The latter
+    is not a valid Gregorian date. So, we introduce a rounding flag. If round_down is True,
+    then this method will decrement the solar date until the lunar date happens to be a valid
+    Gregorian one. If round_down is False, then the solar date will be incremented analogously."""
+    while True:
+        year, month, day = korean_solar_to_lunar(dt.year, dt.month, dt.day)
+        try:
+            datetime.date(year, month, day)
+            return dt.replace(year, month, day)
+        except ValueError:
+            dt += datetime.timedelta(days=-1 if round_down else 1)
 
 
 class KoreanLunarHoliday(KoreanHoliday):
@@ -209,8 +221,8 @@ class KoreanLunarHoliday(KoreanHoliday):
                 )
 
         # Get lunar reference dates
-        lunar_start_date = korean_solar_to_lunar_datetime(solar_start_date)
-        lunar_end_date = korean_solar_to_lunar_datetime(solar_end_date)
+        lunar_start_date = korean_solar_to_lunar_datetime(solar_start_date, round_down=True)
+        lunar_end_date = korean_solar_to_lunar_datetime(solar_end_date, round_down=False)
         dates = super()._reference_dates(lunar_start_date, lunar_end_date)
 
         # Still restrict date range to fall into supported range of korean_lunar_calendar library
@@ -221,4 +233,4 @@ class KoreanLunarHoliday(KoreanHoliday):
         dates = dates.map(korean_lunar_to_solar_datetime)
         dates = pd.DatetimeIndex(dates)
 
-        return dates
+        return dates[(dates >= start_date) & (dates < end_date)]

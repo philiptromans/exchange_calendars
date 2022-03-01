@@ -1,5 +1,7 @@
-import pytest
+from datetime import date
+
 import pandas as pd
+import pytest
 
 from exchange_calendars.exchange_calendar_xkrx import XKRXExchangeCalendar
 from .test_exchange_calendar import ExchangeCalendarTestBase
@@ -126,3 +128,7 @@ class TestXKRXCalendar(ExchangeCalendarTestBase):
         # except the future holidays that are not precomputed yet
         bv = non_weekend_regular.index.isin(precomputed)
         assert bv.all(), f"missing holidays = \n{non_weekend_regular[~bv]}"
+
+    def test_feb_29_2022_in_lunar_calendar(self, default_calendar):
+        # This test asserts that the following does not throw an exception.
+        default_calendar.regular_holidays.holidays(date(2022, 3, 31), date(2022, 3, 31))
