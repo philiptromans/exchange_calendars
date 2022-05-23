@@ -28,6 +28,8 @@ class TestXCBFCalendar(ExchangeCalendarTestBase):
             "2016-11-24",  # thanksgiving day: nov 24
             "2016-12-26",  # christmas (observed): dec 26
             "2017-01-02",  # new years (observed): jan 2 2017
+            # 2022
+            "2022-06-20",  # juneteenth (observed): jun 20 2022
         ]
 
     @pytest.fixture

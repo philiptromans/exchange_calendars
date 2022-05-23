@@ -20,6 +20,7 @@ from exchange_calendars.us_holidays import (
     USMemorialDay,
     USNationalDaysofMourning,
     USNewYearsDay,
+    USJuneteenth
 )
 
 
@@ -53,6 +54,7 @@ class XCBFExchangeCalendar(ExchangeCalendar):
                 GoodFriday,
                 USIndependenceDay,
                 USMemorialDay,
+                USJuneteenth,
                 USLaborDay,
                 USThanksgivingDay,
                 Christmas,
