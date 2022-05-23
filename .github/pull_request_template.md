@@ -18,5 +18,5 @@ It's recommended that whilst working through the process reference be made to ex
 
 - [ ] Modify calendar class as required. 
 - [ ] Modify the test resources file (e.g `tests/resources/{Exchange MIC}.csv`), either manually or by executing `python etc/make_exchange_calendar_test_csv.py {Exchange MIC}`.
-- [ ] Check if any of the fixtrues in `tests/test_{Exchange MIC}_calendar.py` need updating to reflect your changes.
+- [ ] Check if any of the fixtures in `tests/test_{Exchange MIC}_calendar.py` need updating to reflect your changes.
 - [ ] Add references to any new/modified holidays in `exchange_calendars/exchange_calendar_{Exchange MIC}.py`.
