@@ -227,6 +227,13 @@ HKAdhocClosures = [
     pd.Timestamp(
         "2021-10-13"
     ),  # https://www.hkex.com.hk/News/Market-Communications/2021/2110132news?sc_lang=en
+    # In 2022, the mid-autumn festival falls on a Saturday (2022-09-10),
+    #  which means the day after is a Sunday. In 2022, HKSE had a holiday
+    #  on the Monday (2022-09-12). In the past they don't seem to have followed
+    #  this pattern. We'll have to wait and see before we generalise this into a rule.
+    pd.Timestamp(
+        "2022-09-12"
+    )
 ]
 
 
