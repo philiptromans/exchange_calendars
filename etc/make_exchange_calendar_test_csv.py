@@ -53,14 +53,14 @@ if start_arg == "existing" or end_arg == "existing":
     )
 
 if start_arg == "existing":
-    start = df.index[0]
+    start = df.index[0].tz_localize(None)
 elif start_arg == "default":
     start = None
 else:
     start = start_arg
 
 if end_arg == "existing":
-    end = df.index[-1]
+    end = df.index[-1].tz_localize(None)
 elif end_arg == "default":
     end = None
 else:
