@@ -128,6 +128,7 @@ NYEMonday1984AdHoc = Timestamp("1984-12-31")
 NYEMonday1990AdHoc = Timestamp("1990-12-31")
 Bicentennial1988 = Timestamp("1988-01-25")
 Y2KTesting = Timestamp("1999-12-31")
+QueenMourning2022 = Timestamp("2022-09-22")
 
 
 class XASXExchangeCalendar(ExchangeCalendar):
@@ -192,6 +193,7 @@ class XASXExchangeCalendar(ExchangeCalendar):
             NYEMonday1990AdHoc,
             Bicentennial1988,
             Y2KTesting,
+            QueenMourning2022,
         ]
 
     @property

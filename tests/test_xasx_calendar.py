@@ -47,6 +47,11 @@ class TestXASXCalendar(ExchangeCalendarTestBase):
         ]
 
     @pytest.fixture
+    def adhoc_holidays_sample(self):
+        # National day of mourning for the queen
+        yield ["2022-09-22"]
+
+    @pytest.fixture
     def non_holidays_sample(self):
         # Anzac Day on a Saturday, does not have a make-up (prior to 2010).
         yield ["2015-04-27", "2004-04-26"]
