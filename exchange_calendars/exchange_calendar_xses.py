@@ -373,7 +373,7 @@ precomputed_ses_holidays = pd.to_datetime(
         "2022-08-09",  # National Day
         "2022-10-24",  # Deepavali
         "2022-12-26",  # Christmas Day (in lieu)
-        "2023-01-02",  # New Year's Day
+        "2023-01-02",  # New Year's Day (in lieu)
         "2023-01-23",  # Chinese New Year
         "2023-01-24",  # Chinese New Year
         "2023-04-07",  # Good Friday
