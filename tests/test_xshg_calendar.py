@@ -52,4 +52,7 @@ class TestXSHGCalendar(ExchangeCalendarTestBase):
             "2022-09-12",
             "2022-10-06",
             "2022-10-07",
+
+            # 2023
+            "2023-05-03",  # Part of Chinese Labor Day 2023
         ]
