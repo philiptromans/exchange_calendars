@@ -45,7 +45,7 @@ NewYearsDay = new_years_day()
 Epiphany = epiphany(end_date="2019")
 
 AscensionDay = ascension_day(end_date="2019")
-WhitMonday = whit_monday()
+WhitMonday = whit_monday(end_date="2023")
 CorpusChristi = corpus_christi(end_date="2019")
 
 LabourDay = european_labour_day()

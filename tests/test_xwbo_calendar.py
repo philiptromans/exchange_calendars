@@ -93,6 +93,8 @@ class TestXWBOCalendar(ExchangeCalendarTestBase):
             # made up (prior Friday) is not a holiday.
             "2016-12-30",
             "2017-12-29",
+            # Whit Monday was a trading day in 2023
+            "2023-05-29",
         ]
 
     @pytest.fixture
