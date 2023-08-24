@@ -55,4 +55,5 @@ class TestXSHGCalendar(ExchangeCalendarTestBase):
 
             # 2023
             "2023-05-03",  # Part of Chinese Labor Day 2023
+            "2023-06-23",  # Part of Dragon Boat Festival 2023
         ]

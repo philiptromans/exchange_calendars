@@ -79,6 +79,9 @@ class TestXKRXCalendar(ExchangeCalendarTestBase):
             # Hangul Proclamation Day on Saturday
             # so the next monday becomes alternative holiday
             "2022-10-10",
+            # Buddha's birthday was on 27th May (Saturday),
+            # so the next monday becomes alternative holiday
+            "2023-05-29"
         ]
 
     @pytest.fixture
