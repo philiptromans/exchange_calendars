@@ -12,10 +12,10 @@ jobs:
     name: Performance regression check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
-        python-version: "3.10"
+        python-version: "3.11"
     - name: Install dependencies
       run: |
         pip install -e .[dev] -c etc/requirements_dev.txt
@@ -23,7 +23,7 @@ jobs:
       run: |
         pytest etc/bench.py --benchmark-json output.json
     - name: Download previous benchmark data
-      uses: actions/cache@v3.3.1
+      uses: actions/cache@v3.3.2
       with:
         path: ./cache
         key: ${{ runner.os }}-benchmark

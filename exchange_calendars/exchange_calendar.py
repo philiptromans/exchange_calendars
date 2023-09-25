@@ -22,17 +22,17 @@ import functools
 import operator
 from typing import TYPE_CHECKING, Literal, Any
 import warnings
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
 import toolz
 from pandas.tseries.holiday import AbstractHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
-import pytz
-from pytz import UTC
 
 from exchange_calendars import errors
 from .calendar_helpers import (
+    UTC,
     NANOSECONDS_PER_MINUTE,
     NP_NAT,
     Date,
@@ -54,6 +54,7 @@ from .utils.pandas_utils import days_at_time
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs.nattype import NaTType
+
 
 GLOBAL_DEFAULT_START = pd.Timestamp.now().floor("D") - pd.DateOffset(years=20)
 # Give an aggressive buffer for logic that needs to use the next trading
@@ -84,7 +85,7 @@ def selection(
 def _group_times(
     sessions: pd.DatetimeIndex,
     times: None | Sequence[tuple[pd.Timestamp | None, datetime.time]],
-    tz: pytz.tzinfo.BaseTzInfo,
+    tz: ZoneInfo,
     offset: int = 0,
 ) -> pd.DatetimeIndex | None:
     """Evaluate standard times for a specific session bound.
@@ -424,7 +425,7 @@ class ExchangeCalendar(ABC):
 
     @property
     @abstractmethod
-    def tz(self) -> pytz.tzinfo.BaseTzInfo:
+    def tz(self) -> ZoneInfo:
         """Calendar timezone."""
         raise NotImplementedError()
 
@@ -926,12 +927,12 @@ class ExchangeCalendar(ABC):
     @property
     def first_session_open(self) -> pd.Timestamp:
         """Open time of calendar's first session."""
-        return self.opens[0]
+        return self.opens.iloc[0]
 
     @property
     def last_session_close(self) -> pd.Timestamp:
         """Close time of calendar's last session."""
-        return self.closes[-1]
+        return self.closes.iloc[-1]
 
     @property
     def first_minute(self) -> pd.Timestamp:
@@ -1475,8 +1476,8 @@ class ExchangeCalendar(ABC):
                 f" got type {type(ts)}."
             )
 
-        if ts.tz is not pytz.UTC:
-            ts = ts.tz_localize("UTC") if ts.tz is None else ts.tz_convert("UTC")
+        if ts.tz is not UTC:
+            ts = ts.tz_localize(UTC) if ts.tz is None else ts.tz_convert(UTC)
 
         if self._minute_oob(ts):
             raise errors.MinuteOutOfBounds(self, ts, "timestamp")
@@ -1522,7 +1523,7 @@ class ExchangeCalendar(ABC):
         try:
             idx = next_divider_idx(self.opens_nanos, minute.value)
         except IndexError:
-            if minute >= self.opens[-1]:
+            if minute >= self.opens.iloc[-1]:
                 raise ValueError(
                     "Minute cannot be the last open or later (received `minute`"
                     f" parsed as '{minute}'.)"
@@ -1553,7 +1554,7 @@ class ExchangeCalendar(ABC):
         try:
             idx = next_divider_idx(self.closes_nanos, minute.value)
         except IndexError:
-            if minute == self.closes[-1]:
+            if minute == self.closes.iloc[-1]:
                 raise ValueError(
                     "Minute cannot be the last close (received `minute` parsed as"
                     f" '{minute}'.)"
@@ -1583,7 +1584,7 @@ class ExchangeCalendar(ABC):
         try:
             idx = previous_divider_idx(self.opens_nanos, minute.value)
         except ValueError:
-            if minute == self.opens[0]:
+            if minute == self.opens.iloc[0]:
                 raise ValueError(
                     "Minute cannot be the first open (received `minute` parsed as"
                     f" '{minute}'.)"
@@ -1614,7 +1615,7 @@ class ExchangeCalendar(ABC):
         try:
             idx = previous_divider_idx(self.closes_nanos, minute.value)
         except ValueError:
-            if minute <= self.closes[0]:
+            if minute <= self.closes.iloc[0]:
                 raise ValueError(
                     "Minute cannot be the first close or earlier (received"
                     f" `minute` parsed as '{minute}'.)"
@@ -2277,7 +2278,8 @@ class ExchangeCalendar(ABC):
         if negate:
             start, end = end, start
         slc = self._get_sessions_slice(start, end, _parse=False)
-        return slc.start - slc.stop if negate else slc.stop - slc.start
+        dist = slc.start - slc.stop if negate else slc.stop - slc.start
+        return int(dist)  # otherwise returned as `numpy.int64`
 
     def sessions_minutes(
         self, start: Date, end: Date, _parse: bool = True
@@ -2798,92 +2800,6 @@ class ExchangeCalendar(ABC):
             end,
         )
 
-    # Methods deprecated in 4.0 and to be removed in a future release (see #98)
-
-    @deprecate(message="Use `.opens[start:end]` instead.")
-    def sessions_opens(self, start: Date, end: Date, _parse: bool = True) -> pd.Series:
-        """Return UTC open time by session for sessions in given range.
-
-        Parameters
-        ----------
-        start
-            Start of session range (range inclusive of `start`).
-
-        end
-            End of session range (range inclusive of `end`).
-
-        Returns
-        -------
-        pd.Series
-            index:
-                Sessions from `start` through `end` (inclusive of both).
-            values:
-                UTC open times for corresponding sessions.
-        """
-        start, end = self._parse_start_end_dates(start, end, _parse)
-        return self.schedule.loc[start:end, "open"]
-
-    @deprecate(message="Use `.closes[start:end]` instead.")
-    def sessions_closes(self, start: Date, end: Date, _parse: bool = True) -> pd.Series:
-        """Return UTC close time by session for sessions in given range.
-
-        Parameters
-        ----------
-        start
-            Start of session range (range inclusive of `start`).
-
-        end
-            End of session range (range inclusive of `end`).
-
-        Returns
-        -------
-        pd.Series
-            index:
-                Sessions from `start` through `end` (inclusive of both).
-            values:
-                UTC close times for corresponding sessions.
-        """
-        start, end = self._parse_start_end_dates(start, end, _parse)
-        return self.schedule.loc[start:end, "close"]
-
-    @classmethod
-    @deprecate("4.0.3", "Renamed as `bound_min`.")
-    def bound_start(cls) -> pd.Timestamp | None:
-        """Earliest date from which calendar can be constructed.
-
-        Returns
-        -------
-        pd.Timestamp or None
-            Earliest date from which calendar can be constructed. Must be
-            timezone naive. None if no limit.
-
-        Notes
-        -----
-        To impose a constraint on the earliest date from which a calendar
-        can be constructed subclass should override this method and
-        optionally override `_bound_min_error_msg`.
-        """
-        return cls.bound_min()
-
-    @classmethod
-    @deprecate("4.0.3", "Renamed as `bound_max`.")
-    def bound_end(cls) -> pd.Timestamp | None:
-        """Latest date to which calendar can be constructed.
-
-        Returns
-        -------
-        pd.Timestamp or None
-            Latest date to which calendar can be constructed. Must be
-            timezone naive. None if no limit.
-
-        Notes
-        -----
-        To impose a constraint on the latest date to which a calendar can
-        be constructed subclass should override this method and optionally
-        override `_bound_max_error_msg`.
-        """
-        return cls.bound_max()
-
 
 def _check_breaks_match(break_starts_nanos: np.ndarray, break_ends_nanos: np.ndarray):
     """Checks that break_starts_nanos and break_ends_nanos match."""
@@ -2905,7 +2821,7 @@ def scheduled_special_times(
     start: pd.Timestamp,
     end: pd.Timestamp,
     time: datetime.time,
-    tz: pytz.tzinfo.BaseTzInfo,
+    tz: ZoneInfo,
 ) -> pd.Series:
     """Return map of dates to special times.
 

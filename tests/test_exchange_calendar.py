@@ -11,24 +11,23 @@
 # limitations under the License.
 from __future__ import annotations
 
-import datetime
+from collections import abc
+from datetime import time
 import functools
 import itertools
 import pathlib
 import re
 import typing
 from typing import Literal
-from collections import abc
-from datetime import time
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
 import pandas.testing as tm
 import pytest
-import pytz
-from pytz import UTC
 
 from exchange_calendars import errors
+from exchange_calendars.calendar_helpers import UTC
 from exchange_calendars.calendar_utils import (
     ExchangeCalendarDispatcher,
     _default_calendar_aliases,
@@ -137,7 +136,7 @@ def test_default_calendars():
             "2016-07-19",
             0,
             time(9, 31),
-            pytz.timezone("America/New_York"),
+            ZoneInfo("America/New_York"),
             "2016-07-19 9:31",
         ),
         # CME standard day
@@ -145,7 +144,7 @@ def test_default_calendars():
             "2016-07-19",
             -1,
             time(17, 1),
-            pytz.timezone("America/Chicago"),
+            ZoneInfo("America/Chicago"),
             "2016-07-18 17:01",
         ),
         # CME day after DST start
@@ -153,7 +152,7 @@ def test_default_calendars():
             "2004-04-05",
             -1,
             time(17, 1),
-            pytz.timezone("America/Chicago"),
+            ZoneInfo("America/Chicago"),
             "2004-04-04 17:01",
         ),
         # ICE day after DST start
@@ -161,7 +160,7 @@ def test_default_calendars():
             "1990-04-02",
             -1,
             time(19, 1),
-            pytz.timezone("America/Chicago"),
+            ZoneInfo("America/Chicago"),
             "1990-04-01 19:01",
         ),
     ],
@@ -183,14 +182,12 @@ def get_csv(name: str) -> pd.DataFrame:
         index_col=0,
         parse_dates=[0, 1, 2, 3, 4],
     )
-    # Necessary for csv saved prior to v4.0
     if df.index.tz is not None:
         df.index = df.index.tz_convert(None)
-    # Necessary for csv saved prior to v4.0
     for col in df:
         if df[col].dt.tz is None:
             df[col] = df[col].dt.tz_localize(UTC)
-        elif df[col].dt.tz is datetime.timezone.utc:
+        else:
             df[col] = df[col].dt.tz_convert(UTC)
     return df
 
@@ -468,12 +465,12 @@ class Answers:
     @property
     def first_session_open(self) -> pd.Timestamp:
         """Open time of first session covered by answers."""
-        return self.opens[0]
+        return self.opens.iloc[0]
 
     @property
     def last_session_close(self) -> pd.Timestamp:
         """Close time of last session covered by answers."""
-        return self.closes[-1]
+        return self.closes.iloc[-1]
 
     @property
     def first_minute(self) -> pd.Timestamp:
@@ -737,7 +734,7 @@ class Answers:
         if is_break_col:
             if column_.isna().all():
                 return [pd.DatetimeIndex([])] * 2
-            column_ = column_.fillna(method="ffill").fillna(method="bfill")
+            column_ = column_.ffill().bfill()
 
         diff = (column_.shift(-1) - column_)[:-1]
         remainder = diff % pd.Timedelta(hours=24)
@@ -1493,25 +1490,31 @@ class Answers:
         """
         close_is_next_open_bv = self.closes == self.opens.shift(-1)
         open_was_prev_close_bv = self.opens == self.closes.shift(+1)
-        close_is_next_open = close_is_next_open_bv[0]
+        close_is_next_open = close_is_next_open_bv.iloc[0]
 
         # minutes for session 0
-        minute = self.opens[0]
-        yield (minute, (None, None, self.opens[1], self.closes[0]))
+        minute = self.opens.iloc[0]
+        yield (minute, (None, None, self.opens.iloc[1], self.closes.iloc[0]))
 
         minute = minute + self.ONE_MIN
-        yield (minute, (self.opens[0], None, self.opens[1], self.closes[0]))
+        yield (
+            minute,
+            (self.opens.iloc[0], None, self.opens.iloc[1], self.closes.iloc[0]),
+        )
 
-        minute = self.closes[0]
-        next_open = self.opens[2] if close_is_next_open else self.opens[1]
-        yield (minute, (self.opens[0], None, next_open, self.closes[1]))
+        minute = self.closes.iloc[0]
+        next_open = self.opens.iloc[2] if close_is_next_open else self.opens.iloc[1]
+        yield (minute, (self.opens.iloc[0], None, next_open, self.closes.iloc[1]))
 
         minute += self.ONE_MIN
-        prev_open = self.opens[1] if close_is_next_open else self.opens[0]
-        yield (minute, (prev_open, self.closes[0], next_open, self.closes[1]))
+        prev_open = self.opens.iloc[1] if close_is_next_open else self.opens.iloc[0]
+        yield (minute, (prev_open, self.closes.iloc[0], next_open, self.closes.iloc[1]))
 
-        minute = self.closes[0] - self.ONE_MIN
-        yield (minute, (self.opens[0], None, self.opens[1], self.closes[0]))
+        minute = self.closes.iloc[0] - self.ONE_MIN
+        yield (
+            minute,
+            (self.opens.iloc[0], None, self.opens.iloc[1], self.closes.iloc[0]),
+        )
 
         # minutes for sessions over [1:-1] except for -1 close and 'close + one_min'
         opens = self.opens[1:-1]
@@ -1528,7 +1531,7 @@ class Answers:
                 pd.Series(pd.Timestamp("2200-01-01", tz=UTC)),
             ]
         )
-        stop = closes[-1]
+        stop = closes.iloc[-1]
 
         for (
             open_,
@@ -1568,31 +1571,51 @@ class Answers:
                 yield (close + self.ONE_MIN, (open_, close, next_open_, next_close))
 
         # close and 'close + one_min' for session -2
-        minute = self.closes[-2]
-        next_open = None if close_is_next_open_bv[-2] else self.opens[-1]
-        yield (minute, (self.opens[-2], self.closes[-3], next_open, self.closes[-1]))
+        minute = self.closes.iloc[-2]
+        next_open = None if close_is_next_open_bv.iloc[-2] else self.opens.iloc[-1]
+        yield (
+            minute,
+            (
+                self.opens.iloc[-2],
+                self.closes.iloc[-3],
+                next_open,
+                self.closes.iloc[-1],
+            ),
+        )
 
         minute += self.ONE_MIN
-        prev_open = self.opens[-1] if close_is_next_open_bv[-2] else self.opens[-2]
-        yield (minute, (prev_open, self.closes[-2], next_open, self.closes[-1]))
+        prev_open = (
+            self.opens.iloc[-1]
+            if close_is_next_open_bv.iloc[-2]
+            else self.opens.iloc[-2]
+        )
+        yield (
+            minute,
+            (prev_open, self.closes.iloc[-2], next_open, self.closes.iloc[-1]),
+        )
 
         # minutes for session -1
-        if not open_was_prev_close_bv[-1]:
-            open_ = self.opens[-1]
-            prev_open = self.opens[-2]
-            prev_close = self.closes[-2]
+        if not open_was_prev_close_bv.iloc[-1]:
+            open_ = self.opens.iloc[-1]
+            prev_open = self.opens.iloc[-2]
+            prev_close = self.closes.iloc[-2]
             next_open = None
-            close = self.closes[-1]
+            close = self.closes.iloc[-1]
             yield (open_, (prev_open, prev_close, next_open, close))
             yield (open_ - self.ONE_MIN, (prev_open, prev_close, open_, close))
             yield (open_ + self.ONE_MIN, (open_, prev_close, next_open, close))
 
-        minute = self.closes[-1]
-        next_open = self.opens[2] if close_is_next_open_bv[-1] else self.opens[1]
-        yield (minute, (self.opens[-1], self.closes[-2], None, None))
+        minute = self.closes.iloc[-1]
+        next_open = (
+            self.opens.iloc[2] if close_is_next_open_bv.iloc[-1] else self.opens.iloc[1]
+        )
+        yield (minute, (self.opens.iloc[-1], self.closes.iloc[-2], None, None))
 
         minute -= self.ONE_MIN
-        yield (minute, (self.opens[-1], self.closes[-2], None, self.closes[-1]))
+        yield (
+            minute,
+            (self.opens.iloc[-1], self.closes.iloc[-2], None, self.closes.iloc[-1]),
+        )
 
     # dunder
 
@@ -2107,15 +2130,12 @@ class ExchangeCalendarTestBase:
         cal = default_calendar
         year = cal.last_session.year - 1
         days = pd.date_range(str(year), str(year + 1), freq="D")
-        tzinfo = pytz.timezone(cal.tz.zone)
+        tz = cal.tz
 
-        prev_offset = tzinfo.utcoffset(days[0])
+        prev_offset = tz.utcoffset(days[0])
         dates = []
         for day in days[1:]:
-            try:
-                offset = tzinfo.utcoffset(day)
-            except pytz.NonExistentTimeError:
-                offset = tzinfo.utcoffset(day + pd.Timedelta(1, "H"))
+            offset = tz.utcoffset(day)
             if offset != prev_offset:
                 dates.append(day)
                 if len(dates) == 2:
@@ -3054,12 +3074,12 @@ class ExchangeCalendarTestBase:
         f_prev = no_parsing(cal.previous_minute)
 
         # minutes of first session
-        first_min = ans.first_minutes[0]
-        first_min_plus_one = ans.first_minutes_plus_one[0]
-        first_min_less_one = ans.first_minutes_less_one[0]
-        last_min = ans.last_minutes[0]
-        last_min_plus_one = ans.last_minutes_plus_one[0]
-        last_min_less_one = ans.last_minutes_less_one[0]
+        first_min = ans.first_minutes.iloc[0]
+        first_min_plus_one = ans.first_minutes_plus_one.iloc[0]
+        first_min_less_one = ans.first_minutes_less_one.iloc[0]
+        last_min = ans.last_minutes.iloc[0]
+        last_min_plus_one = ans.last_minutes_plus_one.iloc[0]
+        last_min_less_one = ans.last_minutes_less_one.iloc[0]
 
         match = "Requested minute would fall before the calendar's first trading minute"
         with pytest.raises(errors.RequestedMinuteOutOfBounds, match=match):
@@ -3319,7 +3339,6 @@ class ExchangeCalendarTestBase:
 
         for _, sessions in ans.session_block_generator():
             for i, session in enumerate(sessions):
-
                 # intra session
                 first_minute = ans.first_minutes[session]
                 rtrn = f(first_minute + pd.Timedelta(20, "T"), 10)
@@ -3425,7 +3444,6 @@ class ExchangeCalendarTestBase:
                 assertions(minute, target_session, f(minute, -1))
 
         if ans.has_a_session_with_break:
-
             sessions = ans.sessions_next_break_start_later[-5:]
             for session in sessions:
                 target_session = ans.get_next_session(session)
@@ -3839,9 +3857,7 @@ class ExchangeCalendarTestBase:
                         else:
                             ends = ans.closes
                         # index for a 'left' calendar, add end so evaluated as if 'both'
-                        index = index.append(
-                            pd.DatetimeIndex([ends[session]], tz=pytz.UTC)
-                        )
+                        index = index.append(pd.DatetimeIndex([ends[session]], tz=UTC))
 
                         index = index[::mins]  # only want every period
                         if not index[-1] == ends[session]:
@@ -3849,7 +3865,7 @@ class ExchangeCalendarTestBase:
                             # last interval which lies beyond end.
                             last_indice = index[-1] + period
                             index = index.append(
-                                pd.DatetimeIndex([last_indice], tz=pytz.UTC)
+                                pd.DatetimeIndex([last_indice], tz=UTC)
                             )
                         dtis.append(index)
 
@@ -3913,7 +3929,7 @@ class ExchangeCalendarTestBase:
                 getattr(cal, name)
 
         # deprecated class methods
-        for name in ["bound_start", "bound_end"]:
+        for name in []:
             with pytest.warns(FutureWarning):
                 getattr(cal, name)()
 
@@ -3926,10 +3942,7 @@ class ExchangeCalendarTestBase:
         # deprecated methods that take start and end session parameters.
         start = ans.sessions[-10]
         end = session
-        for name in [
-            "sessions_opens",
-            "sessions_closes",
-        ]:
+        for name in []:
             with pytest.warns(FutureWarning):
                 getattr(cal, name)(start, end, _parse=False)
 
